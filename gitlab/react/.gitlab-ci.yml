@@ -1,0 +1,40 @@
+image: docker:latest
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: node:12.22.4
+  script:
+      - CI=false
+      - npm install
+      - npm run build
+      - echo "BUILD SUCCESSFULLY"
+  artifacts:
+    paths:
+      - build/
+    expire_in: 20 mins
+  environment:
+    name: develop
+  only:
+    - develop
+
+deploy:
+  stage: deploy
+  image: python:3.5
+  dependencies:
+    - build
+  script:
+      - pip install awscli --upgrade --user
+      - export PATH=~/.local/bin:$PATH
+      - mkdir ~/.aws/
+      - touch ~/.aws/credentials
+      - printf "[default]\naws_access_key_id = %s\naws_secret_access_key = %s\n" $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY>> ~/.aws/credentials
+      - aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+      - aws s3 sync build/ s3://$AWS_S3_BUCKET_NAME/ --acl public-read --delete
+      - echo "DEPLOYED SUCCESSFULLY"
+  environment:
+    name: develop
+  only:
+    - develop

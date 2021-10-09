@@ -1,0 +1,37 @@
+version: "3.7"
+services:
+  web-server:
+    container_name: web_server_container
+    build:
+      dockerfile: ./apache-php/Dockerfile
+      context: ./apache-php
+    restart: always
+    volumes:
+      - ./src/:/var/www/html:z
+    ports:
+      - 8060:80
+  mysql-server:
+    container_name: db_container
+    image: mysql:5.7.35
+    command: mysqld --sql_mode=""
+    restart: always
+    environment:
+      MYSQL_DATABASE: $MYSQL_DATABASE
+      MYSQL_USER: $MYSQL_USER
+      MYSQL_PASSWORD: $MYSQL_PASSWORD
+      MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
+    volumes:
+      - ./db/:/docker-entrypoint-initdb.d:z
+      - mysql-data:/var/lib/mysql
+    ports:
+      - 13306:3306
+  adminer:
+    container_name: adminer_container
+    image: adminer:latest
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql-server
+    restart: always
+    ports:
+      - 7777:8080
+volumes:
+  mysql-data:
